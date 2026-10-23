@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Historia de la Ingeniería en Sistemas Computacionales | Experiencia 3D Interactiva</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- GSAP 3 CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  
+  <!-- Three.js CDN para Gráficos 3D -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  
+  <!-- Google Fonts: Inter, Space Grotesk, JetBrains Mono, VT323 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@500;700;800&family=VT323&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            retro: ['VT323', 'monospace'],
+          },
+          colors: {
+            era1Copper: '#c88648',
+            era1Parchment: '#ecd9be',
+            era2Green: '#4ade80',
+            era2Sage: '#7ea482',
+            era3Amber: '#f59e0b',
+            era3Beige: '#dfcfb9',
+            era4Cyan: '#0284c7',
+            era4Sky: '#38bdf8',
+            era5NeonCyan: '#00f5d4',
+            era5NeonPink: '#ec4899',
+            era5NeonPurple: '#a855f7',
+            yahelGold: '#fbbf24',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #050711;
+      color: #E2E8F0;
+      overflow-x: hidden;
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+    }
+
+    /* Canvas 3D de fondo */
+    #bg3dCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.65;
+    }
+
+    /* Luces ambientales difusas */
+    .cinema-glow {
+      position: fixed;
+      width: 750px;
+      height: 750px;
+      border-radius: 50%;
+      filter: blur(160px);
+      pointer-events: none;
+      z-index: 0;
+      transition: all 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Paneles de cristal */
+    .glass-panel {
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.75);
+    }
+
+    /* Tarjetas 3D con perspectiva e inclinación táctil */
+    .card-3d-wrapper {
+      perspective: 1200px;
+      transform-style: preserve-3d;
+    }
+
+    .timeline-card-3d {
+      transform-style: preserve-3d;
+      transition: transform 0.22s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+      will-change: transform;
+      position: relative;
+    }
+
+    /* Capa de reflejo dinámico que sigue el cursor */
+    .card-glare {
+      position: absolute;
+      inset: 0;
+      border-radius: 1rem;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      mix-blend-mode: overlay;
+      z-index: 15;
+    }
+
+    .timeline-card-3d:hover .card-glare {
+      opacity: 1;
+    }
+
+    /* Capas flotantes internas (Depth Layers) */
+    .layer-pop-1 {
+      transform: translateZ(18px);
+    }
+    .layer-pop-2 {
+      transform: translateZ(32px);
+    }
+    .layer-pop-3 {
+      transform: translateZ(45px);
+    }
+
+    /* Estilos de Textura por Era */
+    .era-strip-1 {
+      background: linear-gradient(180deg, #171109 0%, #1e150d 50%, #130d07 100%);
+      border-right: 2px solid #55371c;
+    }
+    .era-strip-2 {
+      background: linear-gradient(180deg, #09130d 0%, #122116 50%, #080f0a 100%);
+      border-right: 2px solid #233f2c;
+    }
+    .era-strip-3 {
+      background: linear-gradient(180deg, #160d03 0%, #261607 50%, #100802 100%);
+      border-right: 2px solid #57330d;
+    }
+    .era-strip-4 {
+      background: linear-gradient(180deg, #060e18 0%, #0e1e30 50%, #040911 100%);
+      border-right: 2px solid #163654;
+    }
+    .era-strip-5 {
+      background: linear-gradient(180deg, #050510 0%, #0d0f25 50%, #03030a 100%);
+    }
+
+    /* Cuadrículas tecnológicas decorativas */
+    .grid-blueprint {
+      background-image: radial-gradient(circle at 1px 1px, rgba(200, 134, 72, 0.09) 1px, transparent 0);
+      background-size: 24px 24px;
+    }
+    .grid-lab {
+      background-image: 
+        linear-gradient(to right, rgba(126, 164, 130, 0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(126, 164, 130, 0.06) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+    .scanlines-crt {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.28) 50%), linear-gradient(90deg, rgba(245, 158, 11, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+      background-size: 100% 4px, 6px 100%;
+    }
+    .grid-motherboard {
+      background-image: radial-gradient(circle at 1px 1px, rgba(56, 189, 248, 0.09) 1px, transparent 0);
+      background-size: 22px 22px;
+    }
+    .grid-cyber {
+      background-image: 
+        radial-gradient(circle at 2px 2px, rgba(0, 245, 212, 0.14) 1.5px, transparent 0),
+        radial-gradient(circle at 18px 18px, rgba(236, 72, 153, 0.1) 1.5px, transparent 0);
+      background-size: 36px 36px;
+    }
+
+    /* Pulso continuo en la autopista de datos */
+    @keyframes busEnergyMove {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+    .bus-energy-stream {
+      background-size: 200% 200%;
+      animation: busEnergyMove 6s linear infinite;
+    }
+
+    /* Scrollbars elegantes */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #070913; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative selection:bg-cyan-500 selection:text-slate-950">
+
+  <!-- CANVAS 3D INTERACTIVO THREE.JS (FONDO DINÁMICO) -->
+  <canvas id="bg3dCanvas"></canvas>
+
+  <!-- Luces ambientales sincronizadas -->
+  <div id="ambientGlowTop" class="cinema-glow -top-36 -right-36 bg-amber-500/10"></div>
+  <div id="ambientGlowBottom" class="cinema-glow -bottom-36 -left-36 bg-cyan-600/10"></div>
+
+  <!-- BARRA SUPERIOR / HEADER GLOBAL -->
+  <header class="relative z-30 glass-panel bg-slate-950/90 border-b border-slate-800/80 px-6 py-3.5 sticky top-0">
+    <div class="max-w-[1720px] mx-auto flex flex-col lg:flex-row items-center justify-between gap-3">
+      
+      <!-- Marca & Metadatos del Equipo -->
+      <div class="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-start">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/25 text-slate-950 font-black font-display text-lg tracking-tight">
+            ISC
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+              <span class="text-[11px] font-mono tracking-widest text-slate-400 uppercase font-semibold">Investigación Oficial • Equipo: Yahel, Abril, Alejandro, Tamar</span>
+            </div>
+            <h1 class="text-base md:text-lg font-bold font-display text-white tracking-tight flex items-center gap-2">
+              Línea del Tiempo Interactiva de la ISC
+            </h1>
+          </div>
+        </div>
+
+        <!-- Botón de Audio Feedback -->
+        <button id="audioToggleBtn" onclick="toggleAudio()" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700/80 text-xs font-mono text-slate-300 hover:text-white transition flex items-center gap-1.5" title="Activar/Desactivar efectos de audio sintético">
+          <span id="audioIcon">🔊</span> <span id="audioLabel" class="hidden sm:inline">Sonido ON</span>
+        </button>
+      </div>
+
+      <!-- Selector de Modo de Visualización (Panorámico vs Escénico) -->
+      <div class="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/90 border border-slate-800">
+        <button id="viewBtnPanoramico" onclick="setViewMode('panoramico')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 bg-gradient-to-r from-amber-600/40 via-emerald-600/40 to-cyan-600/40 text-white border border-white/20 shadow-md">
+          <span>🌐</span> Vista Panorámica Continua
+        </button>
+        <button id="viewBtnEscenico" onclick="setViewMode('escenico')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2">
+          <span>🎬</span> Modo Época por Época
+        </button>
+      </div>
+
+      <!-- Pestañas Especiales -->
+      <div class="flex flex-wrap items-center gap-1.5 text-xs">
+        <button onclick="switchScreen('reflexion')" class="nav-btn px-3 py-1.5 rounded-lg font-semibold text-pink-300 bg-pink-950/40 hover:bg-pink-900/50 border border-pink-700/50 transition flex items-center gap-1.5 shadow-sm">
+          <span>💬</span> Reflexiones del Equipo
+        </button>
+        <button onclick="switchScreen('lente')" class="nav-btn px-3 py-1.5 rounded-lg font-semibold text-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-700/50 transition flex items-center gap-1.5 shadow-sm">
+          <span>🔬</span> Lente TGS
+        </button>
+        <button onclick="switchScreen('analisis')" class="nav-btn px-3 py-1.5 rounded-lg font-semibold text-amber-300 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-700/50 transition flex items-center gap-1.5 shadow-sm">
+          <span>📊</span> Análisis Crítico
+        </button>
+        <button onclick="switchScreen('apa')" class="nav-btn px-3 py-1.5 rounded-lg font-semibold text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-700/50 transition flex items-center gap-1.5 shadow-sm">
+          <span>📚</span> APA 7
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL DINÁMICO -->
+  <main id="mainContainer" class="flex-1 relative z-20 w-full">
+    <!-- El contenido se inyecta mediante JS -->
+  </main>
+
+  <!-- MODAL DE DETALLE EN PROFUNDIDAD CON ANIMACIÓN GSAP FLUIDA (SIN POPUPS REPENTINOS) -->
+  <div id="detailModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4" style="opacity: 0; pointer-events: none;">
+    <div id="modalBox" class="glass-panel bg-slate-900/95 border border-slate-700 max-w-2xl w-full rounded-2xl p-6 shadow-2xl relative" style="transform: scale(0.85) translateY(30px); opacity: 0;">
+      
+      <!-- Botón de Cerrar con Animación -->
+      <button onclick="closeModal()" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold transition">
+        ✕
+      </button>
+
+      <div class="flex items-center gap-3 mb-2">
+        <span id="modalYear" class="text-3xl font-display font-black tracking-tight"></span>
+        <span id="modalBadge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider border"></span>
+      </div>
+
+      <h2 id="modalTitle" class="text-xl font-display font-extrabold text-white mb-4 pr-10"></h2>
+
+      <div class="space-y-4 text-xs md:text-sm text-slate-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
+        <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80">
+          <span class="text-[11px] font-mono uppercase tracking-wider font-bold text-slate-400 block mb-1">📜 Acontecimiento Histórico:</span>
+          <p id="modalEvent" class="text-slate-200"></p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-950/70 border border-dashed border-slate-700/80">
+          <span class="text-[11px] font-mono uppercase tracking-wider font-bold text-amber-400 block mb-1">💡 Relevancia Directa para el Ingeniero en Sistemas:</span>
+          <p id="modalRelevance" class="text-slate-200"></p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80">
+          <span class="text-[11px] font-mono uppercase tracking-wider font-bold text-cyan-400 block mb-1">🔍 Análisis Técnico y Contexto Histórico:</span>
+          <p id="modalAnalysis" class="text-slate-200"></p>
+        </div>
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-slate-800 flex justify-end">
+        <button onclick="closeModal()" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition shadow">
+          Cerrar Detalle
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT DE DATOS Y MOTOR DE INTERACCIÓN 3D / GSAP -->
+  <script>
+    // =========================================================================
+    // 1. MOTOR DE AUDIO SINTÉTICO (Web Audio API)
+    // =========================================================================
+    let audioCtx = null;
+    let audioEnabled = true;
+
+    function playTone(freq, type = 'sine', duration = 0.08, gainVal = 0.05) {
+      if (!audioEnabled) return;
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.warn("Audio Context error:", e);
+      }
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById("audioIcon").innerText = audioEnabled ? "🔊" : "🔇";
+      document.getElementById("audioLabel").innerText = audioEnabled ? "Sonido ON" : "Sonido OFF";
+      if (audioEnabled) playTone(587.33, 'triangle', 0.12, 0.08);
+    }
+
+    // =========================================================================
+    // 2. MOTOR GRÁFICO 3D THREE.JS (Fondo con Partículas y Artefactos en Movimiento)
+    // =========================================================================
+    let scene, camera, renderer, particles, floatingObjects = [];
+    let mouseX = 0, mouseY = 0;
+
+    function initThreeJS() {
+      const canvas = document.getElementById("bg3dCanvas");
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 2000);
+      camera.position.z = 800;
+
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Nube de 1000 Partículas 3D con movimiento
+      const particleGeo = new THREE.BufferGeometry();
+      const particleCount = 1000;
+      const posArray = new Float32Array(particleCount * 3);
+      for (let i = 0; i < particleCount * 3; i++) {
+        posArray[i] = (Math.random() - 0.5) * 2000;
+      }
+      particleGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+      const particleMat = new THREE.PointsMaterial({
+        size: 2.5,
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.45,
+        blending: THREE.AdditiveBlending
+      });
+      particles = new THREE.Points(particleGeo, particleMat);
+      scene.add(particles);
+
+      // Artefactos 3D temáticos flotantes
+      // 1. Cilindro wireframe (Tubo de vacío Era 1)
+      const cylGeo = new THREE.CylinderGeometry(40, 40, 100, 16, 4, true);
+      const cylMat = new THREE.MeshBasicMaterial({ color: 0xc88648, wireframe: true, transparent: true, opacity: 0.35 });
+      const cylMesh = new THREE.Mesh(cylGeo, cylMat);
+      cylMesh.position.set(-600, 120, -100);
+      scene.add(cylMesh);
+      floatingObjects.push({ mesh: cylMesh, rotSpeedX: 0.005, rotSpeedY: 0.008 });
+
+      // 2. Torus Wireframe (Carrete de cinta magnética Era 2)
+      const torusGeo = new THREE.TorusGeometry(60, 12, 12, 36);
+      const torusMat = new THREE.MeshBasicMaterial({ color: 0x4ade80, wireframe: true, transparent: true, opacity: 0.35 });
+      const torusMesh = new THREE.Mesh(torusGeo, torusMat);
+      torusMesh.position.set(-300, -150, -50);
+      scene.add(torusMesh);
+      floatingObjects.push({ mesh: torusMesh, rotSpeedX: 0.007, rotSpeedY: 0.004 });
+
+      // 3. Icosaedro Wireframe (Microprocesador/Silicio Era 3)
+      const icoGeo = new THREE.IcosahedronGeometry(65, 1);
+      const icoMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true, transparent: true, opacity: 0.35 });
+      const icoMesh = new THREE.Mesh(icoGeo, icoMat);
+      icoMesh.position.set(0, 160, -80);
+      scene.add(icoMesh);
+      floatingObjects.push({ mesh: icoMesh, rotSpeedX: 0.004, rotSpeedY: 0.006 });
+
+      // 4. Caja Wireframe (Servidor en rack / Nube Era 4)
+      const boxGeo = new THREE.BoxGeometry(85, 85, 85, 2, 2, 2);
+      const boxMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, wireframe: true, transparent: true, opacity: 0.35 });
+      const boxMesh = new THREE.Mesh(boxGeo, boxMat);
+      boxMesh.position.set(320, -130, -60);
+      scene.add(boxMesh);
+      floatingObjects.push({ mesh: boxMesh, rotSpeedX: 0.006, rotSpeedY: 0.005 });
+
+      // 5. Dodecaedro Cuántico (Red Neuronal / IA Era 5)
+      const dodecaGeo = new THREE.DodecahedronGeometry(75, 1);
+      const dodecaMat = new THREE.MeshBasicMaterial({ color: 0x00f5d4, wireframe: true, transparent: true, opacity: 0.4 });
+      const dodecaMesh = new THREE.Mesh(dodecaGeo, dodecaMat);
+      dodecaMesh.position.set(650, 100, -50);
+      scene.add(dodecaMesh);
+      floatingObjects.push({ mesh: dodecaMesh, rotSpeedX: 0.008, rotSpeedY: 0.009 });
+
+      // Eventos de Parallax con el Mouse
+      window.addEventListener("mousemove", (e) => {
+        mouseX = (e.clientX - window.innerWidth / 2) * 0.15;
+        mouseY = (e.clientY - window.innerHeight / 2) * 0.15;
+      });
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      animateThreeJS();
+    }
+
+    function animateThreeJS() {
+      requestAnimationFrame(animateThreeJS);
+
+      // Rotación suave de partículas y seguimiento de cámara
+      if (particles) {
+        particles.rotation.y += 0.0006;
+        particles.rotation.x += 0.0003;
+      }
+
+      floatingObjects.forEach(obj => {
+        obj.mesh.rotation.x += obj.rotSpeedX;
+        obj.mesh.rotation.y += obj.rotSpeedY;
+      });
+
+      camera.position.x += (mouseX - camera.position.x) * 0.03;
+      camera.position.y += (-mouseY - camera.position.y) * 0.03;
+      camera.lookAt(scene.position);
+
+      renderer.render(scene, camera);
+    }
+
+    // =========================================================================
+    // 3. BASE DE DATOS COMPLETA DE HITOS HISTÓRICOS Y ERAS
+    // Incorpora fielmente el Hito y la Reflexión de Yahel junto a Abril, Alejandro y Tamar
+    // =========================================================================
+    const timelineData = [
+      {
+        id: "era-1",
+        codeName: "early-computing",
+        eraRange: "1940s-1950s",
+        title: "Early Computing Era",
+        subtitle: "Válvulas de vacío, tarjetas perforadas, primer hardware programable y nacimiento del software",
+        accent: "#C88648",
+        bgClass: "era-strip-1",
+        gridClass: "grid-blueprint",
+        lineColor: "#c88648",
+        headerBadge: "ERA 01 • VÁLVULAS & RELÉS",
+        cards: [
+          {
+            year: "1941",
+            title: "Primer Hardware Programable: Konrad Zuse y la Z3",
+            sourceTag: "ldt.txt / Computación",
+            badgeType: "Primer Hardware",
+            badgeColor: "#c88648",
+            position: "top",
+            icon: "⚙️",
+            event: "Konrad Zuse culmina con éxito en 1941 la Z3, construida en el salón de la casa de sus padres en Berlín. Primera computadora electromecánica binaria programable del mundo, capaz de almacenar 64 palabras de 22 bits.",
+            relevance: "Marca el hito fundacional del hardware moderno: demostró que los cálculos matemáticos complejos podían ejecutarse mediante circuitos binarios booleanos automáticos.",
+            analysis: "Construida con relés telefónicos reutilizados durante la Segunda Guerra Mundial, validó la superioridad del sistema binario sobre el decimal en el cómputo automático."
+          },
+          {
+            year: "1943-1945",
+            title: "Bell Labs y la Fundación de la Ingeniería de Sistemas",
+            sourceTag: "Complemento Histórico / Bell Labs",
+            badgeType: "Ingeniería de Sistemas",
+            badgeColor: "#e09f58",
+            position: "bottom",
+            icon: "📞",
+            event: "Bell Telephone Laboratories unifica sus áreas de conmutación y transmisión bajo el concepto de 'Ingeniería de Sistemas'. Paralelamente, Von Neumann concibe la arquitectura de programa almacenado en memoria.",
+            relevance: "Nace el principio sistémico esencial: una solución tecnológica no es una suma de piezas aisladas, sino una totalidad coordinada con propiedades emergentes.",
+            analysis: "Este enfoque interdisciplinario fue adoptado por la NASA y el Departamento de Defensa de EE. UU. para coordinar proyectos masivos de comunicaciones y radar."
+          },
+          {
+            year: "1948",
+            title: "Nacimiento Formal del Software: Manchester Baby (SSEM)",
+            sourceTag: "ldt.txt (21 de Junio de 1948)",
+            badgeType: "Primer Software",
+            badgeColor: "#c88648",
+            position: "top",
+            icon: "💾",
+            event: "El 21 de junio de 1948 se ejecutó con éxito el primer programa informático almacenado en memoria electrónica en la máquina 'Baby' (SSEM) en la Universidad de Manchester, naciendo oficialmente el software.",
+            relevance: "Independizó las instrucciones lógicas del cableado físico: por primera vez, una máquina podía reprogramarse modificando memoria sin tener que recablearla.",
+            analysis: "Escrito por Tom Kilburn con solo 17 instrucciones para calcular divisores matemáticos, validó el uso de los tubos Williams como memoria de acceso aleatorio."
+          },
+          {
+            year: "1952",
+            title: "Primer Videojuego: OXO (Alexander S. Douglas)",
+            sourceTag: "ldt.txt / Univ. de Cambridge",
+            badgeType: "Primer Videojuego",
+            badgeColor: "#e09f58",
+            position: "bottom",
+            icon: "🕹️",
+            event: "Alexander S. Douglas desarrolla 'OXO' (tres en raya) sobre la computadora EDSAC en Cambridge como tesis doctoral sobre interacción humano-computadora.",
+            relevance: "Primer hito de software lúdico e interactivo humano-máquina (HCI), evidenciando que las computadoras no se limitaban al cálculo balístico militar.",
+            analysis: "Desplegaba el tablero gráfico en un osciloscopio CRT de 35x16 fósforos y recibía las jugadas del usuario a través de un dial telefónico rotatorio."
+          },
+          {
+            year: "1954",
+            title: "Teoría General de Sistemas (TGS) y Cibernética",
+            sourceTag: "Complemento (Bertalanffy / Wiener)",
+            badgeType: "Fundamento Epistemológico",
+            badgeColor: "#c88648",
+            position: "top",
+            icon: "🔄",
+            event: "Ludwig von Bertalanffy articula la TGS fundando la SGSR; paralelamente, Norbert Wiener formaliza la Cibernética como la ciencia del control y la retroalimentación.",
+            relevance: "Otorga el marco conceptual distintivo del ISC: capacidad de analizar sinergias, límites de sistemas y flujos de retroalimentación con el entorno.",
+            analysis: "Enseña que los problemas de software no son fallas aisladas, sino desajustes entre el componente tecnológico, los datos y los procesos humanos organizacionales."
+          },
+          {
+            year: "1957",
+            title: "Lenguaje FORTRAN: Pionero de Alto Nivel (IBM)",
+            sourceTag: "ldt.txt (IBM Formula Translating System)",
+            badgeType: "Lenguaje Fortran",
+            badgeColor: "#e09f58",
+            position: "bottom",
+            icon: "🧮",
+            event: "IBM lanza en 1957 el lenguaje FORTRAN para el equipo IBM 704, concebido por John Backus. Primer lenguaje de alto nivel procedural adaptado al cálculo numérico y científico.",
+            relevance: "Multiplicó la productividad del software al sustituir el ensamblador por fórmulas algebraicas. Se ha mantenido en uso continuo por más de medio siglo en supercómputo.",
+            analysis: "Pilar fundamental de la física computacional, dinámica de fluidos y benchmarks que determinan las supercomputadoras más rápidas del planeta."
+          }
+        ]
+      },
+      {
+        id: "era-2",
+        codeName: "semiconductor-microchip",
+        eraRange: "1960s-1970s",
+        title: "Semiconductor & Microchip Era",
+        subtitle: "Cintas magnéticas, circuitos integrados, llegada de la carrera al ITESM, ARPANET, UNIX talk, C y antivirus Reaper",
+        accent: "#4ADE80",
+        bgClass: "era-strip-2",
+        gridClass: "grid-lab",
+        lineColor: "#4ade80",
+        headerBadge: "ERA 02 • TRANSISTOR & CIRCUITOS INTEGRADOS",
+        cards: [
+          {
+            year: "1967",
+            title: "Nacimiento de la Profesión en México (ITESM)",
+            sourceTag: "ldt.txt / Historia de la Educación",
+            badgeType: "Hito Nacional ISC",
+            badgeColor: "#4ade80",
+            position: "top",
+            icon: "🎓",
+            event: "En 1967 nace en el ITESM la primera carrera formal en México vinculada a la computación, marcando el nacimiento académico de la profesión en el país.",
+            relevance: "Validó la computación como una disciplina universitaria independiente y necesaria para la industrialización, superando la práctica empírica de físicos y mecánicos.",
+            analysis: "Permitió estructurar planes de estudio universitarios dedicados exclusivamente a la ingeniería de software y la administración de centros de cómputo."
+          },
+          {
+            year: "1968",
+            title: "Conferencia OTAN en Garmisch: 'La Crisis del Software'",
+            sourceTag: "Complemento Histórico OTAN",
+            badgeType: "Ingeniería de Software",
+            badgeColor: "#7ea482",
+            position: "bottom",
+            icon: "⚠️",
+            event: "Científicos mundiales se reúnen ante el colapso financiero de megaproyectos informáticos y formalizan el término 'Ingeniería de Software'.",
+            relevance: "Transformó la programación artesanal en una disciplina de ingeniería con ciclos de vida estandarizados, diseño modular y control de calidad riguroso.",
+            analysis: "Sentó las bases teóricas de metodologías estructuradas para gobernar la complejidad no lineal de los sistemas informáticos masivos."
+          },
+          {
+            year: "1969",
+            title: "Nacimiento de Internet: ARPANET en la Guerra Fría",
+            sourceTag: "ldt.txt (Red de Proyectos Avanzados)",
+            badgeType: "Nacimiento de Internet",
+            badgeColor: "#4ade80",
+            position: "top",
+            icon: "🌐",
+            event: "DARPA crea ARPANET a finales de los 60 como red militar de conmutación de paquetes tolerante a ataques nucleares durante la Guerra Fría.",
+            relevance: "'Internet lo es todo: tener una biblioteca mundial en tus manos, el contacto social inmediato, el comercio y el constante reto de inventar lo no registrado'.",
+            analysis: "El primer mensaje entre UCLA y Stanford en 1969 inició la transición irreversible hacia redes distribuidas abiertas y la pila de protocolos TCP/IP."
+          },
+          {
+            year: "1970",
+            title: "Mensajería Instantánea Primitiva (talk en UNIX)",
+            sourceTag: "ldt.txt (Comunicación en Tiempo Real)",
+            badgeType: "Mensajería Instantánea",
+            badgeColor: "#7ea482",
+            position: "bottom",
+            icon: "💬",
+            event: "En los 70 surge la comunicación textual sincrónica multiusuario en terminales de red; el comando talk de UNIX fue masivamente usado en los 80 y 90.",
+            relevance: "Precursor directo de los sistemas modernos de mensajería instantánea, chat corporativo, WebSockets y plataformas de colaboración telemática remota.",
+            analysis: "Dividía la pantalla en terminales remotas, transmitiendo pulsaciones carácter por carácter en tiempo real entre ingenieros y académicos."
+          },
+          {
+            year: "1970",
+            title: "Bases de Datos Relacionales (Edgar F. Codd en IBM)",
+            sourceTag: "ldt.txt (A Relational Model of Data)",
+            badgeType: "Bases de Datos",
+            badgeColor: "#4ade80",
+            position: "top",
+            icon: "🗄️",
+            event: "Edgar F. Codd publica su célebre modelo relacional en IBM, transformando para siempre la forma en que los sistemas estructuran y consultan información masiva.",
+            relevance: "Sentó las bases del lenguaje SQL y de los motores de bases de datos relacionales (RDBMS), eliminando la dependencia rígida de punteros jerárquicos.",
+            analysis: "Organizó la información en relaciones matemáticas (tablas con tuplas y atributos), garantizando integridad referencial e independencia de hardware."
+          },
+          {
+            year: "1972",
+            title: "Nacimiento Oficial del Lenguaje C: Dennis Ritchie",
+            sourceTag: "ldt.txt (Lenguaje de Propósito General)",
+            badgeType: "Lenguaje C",
+            badgeColor: "#7ea482",
+            position: "bottom",
+            icon: "💻",
+            event: "Dennis Ritchie formaliza el lenguaje C en Bell Labs de Unix Systems para reescribir el sistema operativo UNIX sobre la arquitectura DEC PDP-11.",
+            relevance: "La 'lingua franca' de la computación moderna: lenguaje estructurado de bajo nivel con acceso directo a memoria y alta portabilidad.",
+            analysis: "Los núcleos de Linux, Windows NT, macOS, compiladores modernos y motores de alto rendimiento están construidos directamente sobre C/C++."
+          },
+          {
+            year: "1972",
+            title: "El Primer Antivirus: Reaper Neutraliza a Creeper",
+            sourceTag: "ldt.txt (09 de Febrero de 1972 / Bob Thomas)",
+            badgeType: "Primer Antivirus",
+            badgeColor: "#4ade80",
+            position: "top",
+            icon: "🛡️",
+            event: "Tras propagarse en 1971 el virus Creeper en máquinas DEC PDP-10, el 9 de febrero de 1972 surge Reaper para desplazarse por la red y eliminarlo.",
+            relevance: "Nacimiento histórico de la ciberseguridad y el software antivirus: dio origen a las suites modernas como Kaspersky, ESET, Norton, BitDefender y Avast.",
+            analysis: "Creeper mostraba 'I'm the creeper, catch me if you can!'. Reaper fue el primer programa defensivo en recorrer nodos en red para desinfectar terminales."
+          }
+        ]
+      },
+      {
+        id: "era-3",
+        codeName: "retro-tech",
+        eraRange: "1980s-1990s",
+        title: "Retro-Tech Era",
+        subtitle: "Monitores CRT de fósforo ámbar, disquetes, computadoras personales IBM & Apple, expansión en TecNM y la Web",
+        accent: "#F59E0B",
+        bgClass: "era-strip-3",
+        gridClass: "scanlines-crt",
+        lineColor: "#f59e0b",
+        headerBadge: "ERA 03 • COMPUTACIÓN PERSONAL & DISQUETES",
+        cards: [
+          {
+            year: "1981",
+            title: "Apertura de ISC en Institutos Tecnológicos (TecNM)",
+            sourceTag: "ldt.txt (1 de Enero de 1981)",
+            badgeType: "Educación Pública ISC",
+            badgeColor: "#f59e0b",
+            position: "top",
+            icon: "🏫",
+            event: "El 1 de enero de 1981 se formalizan las carreras de computación en el sistema público de Tecnológicos (Veracruz, Querétaro, SLP) bajo el nombre de ISC.",
+            relevance: "Democratizó la carrera en México: el sistema federal extendió la formación técnica que modernizó la banca, la industria y el sector público.",
+            analysis: "Estableció un currículo equilibrado entre circuitos de hardware, programación algorítmica e investigación de sistemas organizacionales."
+          },
+          {
+            year: "1981",
+            title: "Revolución de las Computadoras Personales (IBM & Apple)",
+            sourceTag: "ldt.txt (Transición de Minicomputadoras)",
+            badgeType: "Computadoras Personales",
+            badgeColor: "#dfcfb9",
+            position: "bottom",
+            icon: "🖥️",
+            event: "Lanzamiento del IBM PC 5150 y equipos Apple: se deja atrás la era en que una minicomputadora era del tamaño de una lavadora y requería cuartos refrigerados.",
+            relevance: "Descentralizó el cómputo: las computadoras se instalaron en escritorios de hogares y oficinas, posibilitando el trabajo desde cualquier sitio.",
+            analysis: "La arquitectura compatible x86 con MS-DOS permitió el surgimiento del mercado masivo de software comercial, hojas de cálculo y procesadores de texto."
+          },
+          {
+            year: "1991",
+            title: "Creación de la World Wide Web: Tim Berners-Lee",
+            sourceTag: "ldt.txt (Hipertexto Global en CERN)",
+            badgeType: "World Wide Web",
+            badgeColor: "#f59e0b",
+            position: "top",
+            icon: "🌐",
+            event: "Tim Berners-Lee presenta en el CERN la World Wide Web, integrando HTML, el protocolo HTTP y el sistema de direccionamiento URL en Internet.",
+            relevance: "Masificó el acceso al Internet; desató la industria del desarrollo web y multiplicó exponencialmente las oportunidades laborales del ISC.",
+            analysis: "Al publicar las especificaciones en el dominio público de forma abierta, aseguró que la red creciera de forma global, neutral y sin monopolios iniciales."
+          },
+          {
+            year: "1995",
+            title: "Paradigma Orientado a Objetos, Java y Patrones GoF",
+            sourceTag: "Complemento (Sun Microsystems / GoF)",
+            badgeType: "Ingeniería de Software",
+            badgeColor: "#dfcfb9",
+            position: "bottom",
+            icon: "☕",
+            event: "Sun Microsystems lanza Java ('Write Once, Run Anywhere') y el Gang of Four publica los 23 patrones de diseño clásicos de desarrollo de software.",
+            relevance: "Estandarizó la arquitectura de software modular, reutilizable y portable, pilar de las aplicaciones bancarias, empresariales y comerciales del mundo.",
+            analysis: "Resolvió la fragilidad de sistemas monolíticos al estructurar la lógica en clases, encapsulamiento y polimorfismo robusto."
+          }
+        ]
+      },
+      {
+        id: "era-4",
+        codeName: "desktop-connected",
+        eraRange: "2000s-2010s",
+        title: "Desktop & Connected Era",
+        subtitle: "Gabinetes ATX, fibra óptica, Web 2.0 interactiva, smartphones, Cloud Computing con AWS, Big Data y seguridad IoT",
+        accent: "#0284C7",
+        bgClass: "era-strip-4",
+        gridClass: "grid-motherboard",
+        lineColor: "#0284c7",
+        headerBadge: "ERA 04 • NUBE, MOVILIDAD & BIG DATA",
+        cards: [
+          {
+            year: "2004-2007",
+            title: "Web 2.0 Dinámica y la Revolución Móvil (Smartphones)",
+            sourceTag: "Complemento (AJAX / iPhone / Android)",
+            badgeType: "Web 2.0 & Móvil",
+            badgeColor: "#38bdf8",
+            position: "top",
+            icon: "📱",
+            event: "Auge de aplicaciones web asíncronas (AJAX) y lanzamiento del smartphone moderno (iPhone y Android) permanentemente conectado a Internet.",
+            relevance: "El software se convirtió en una experiencia ubicua y táctil; el ISC se orientó al diseño de APIs REST, microservicios y experiencias móviles.",
+            analysis: "Transformó radicalmente la economía y la sociedad al integrar computación de alto rendimiento en los bolsillos de miles de millones de personas."
+          },
+          {
+            year: "2006-2010",
+            title: "Consolidación de Cloud Computing y DevOps (AWS)",
+            sourceTag: "Complemento (Infraestructura como Código)",
+            badgeType: "Cloud Computing",
+            badgeColor: "#0284c7",
+            position: "bottom",
+            icon: "☁️",
+            event: "Lanzamiento y expansión de AWS (S3, EC2); el hardware físico se abstrae en infraestructura elástica programable como código (IaC).",
+            relevance: "Democratizó la escalabilidad mundial: cualquier equipo pequeño puede desplegar servicios de alcance planetario sin construir centros de datos.",
+            analysis: "Dio origen al movimiento DevOps y a la orquestación en contenedores (Docker, Kubernetes) para despliegues continuos y sin caídas."
+          },
+          {
+            year: "2011-2015",
+            title: "Eclosión de Big Data y Analítica Distribuida (Hadoop/Spark)",
+            sourceTag: "Complemento (Arquitectura Data-Driven)",
+            badgeType: "Big Data & Analítica",
+            badgeColor: "#38bdf8",
+            position: "top",
+            icon: "📊",
+            event: "Frameworks distribuidos permiten procesar petabytes de datos no estructurados en clústeres comerciales a escala masiva.",
+            relevance: "La toma de decisiones empresariales pasa de intuitiva a guiada por datos (Data-Driven), naciendo la ingeniería de pipelines masivos de datos.",
+            analysis: "Demandó el dominio de bases NoSQL, almacenamiento columnar y procesamiento en memoria paralela con consistencia eventual."
+          },
+          {
+            year: "2016-2019",
+            title: "IoT y Ciberseguridad por Diseño (Security by Design)",
+            sourceTag: "Complemento (Sistemas Ciberfísicos)",
+            badgeType: "Ciberseguridad & IoT",
+            badgeColor: "#0284c7",
+            position: "bottom",
+            icon: "🔒",
+            event: "Conexión masiva de sensores industriales y domésticos (IoT); la sofisticación de ataques exige seguridad desde la fase conceptual.",
+            relevance: "La seguridad deja de ser un añadido final para integrarse como principio fundacional obligatorio en el resguardo de infraestructuras críticas.",
+            analysis: "Se vincula directamente con la protección de sistemas ciberfísicos: redes eléctricas, dispositivos médicos, automoción y servicios de banca digital."
+          }
+        ]
+      },
+      {
+        id: "era-5",
+        codeName: "modern-ai-quantum",
+        eraRange: "2020s & Beyond",
+        title: "Modern Era: AI, Cloud & Systems",
+        subtitle: "Redes neuronales, modelos LLMs, agentes inteligentes de Yahel, Edge Computing verde y el Ingeniero Holístico",
+        accent: "#00F5D4",
+        bgClass: "era-strip-5",
+        gridClass: "grid-cyber",
+        lineColor: "#00f5d4",
+        headerBadge: "ERA 05 • INTELIGENCIA ARTIFICIAL & FUTURO",
+        cards: [
+          {
+            year: "2020-2023",
+            title: "Disrupción de la IA Generativa, Transformers y LLMs",
+            sourceTag: "Tendencia Contemporánea / LLMs",
+            badgeType: "Inteligencia Artificial",
+            badgeColor: "#00f5d4",
+            position: "top",
+            icon: "🧠",
+            event: "Modelos masivos de lenguaje (LLMs) y arquitectura Transformer a escala de miles de millones de parámetros automatizan la síntesis de código y el razonamiento complejo.",
+            relevance: "El rol del ISC muta: de codificador manual de sintaxis a arquitecto cognitivo, evaluador de sesgos y diseñador de soluciones de alto impacto.",
+            analysis: "Demanda una sólida comprensión de inferencia probabilística, orquestación de embeddings vectoriales y guardrails de seguridad ética."
+          },
+          {
+            year: "2023-2026",
+            title: "Revolución de los Sistemas Agénticos Autónomos",
+            sourceTag: "Hito Clave",
+            badgeType: "Sistemas Agénticos • Yahel",
+            badgeColor: "#fbbf24",
+            position: "bottom",
+            icon: "🤖",
+            event: "Transición fundamental de la IA pasiva a sistemas agénticos interactivos y autónomos que cooperan activamente con ingenieros para concebir, refinar y gobernar software complejo.",
+            relevance: "Define la frontera contemporánea de nuestra profesión: el ISC se convierte en el director de orquesta de la inteligencia colectiva máquina-humano, articulando agentes autónomos sobre arquitecturas distribuidas.",
+            analysis: "Los modelos no sustituyen al ingeniero, sino que elevan su valor hacia la abstracción sistémica superior: formulación de problemas, diseño de arquitecturas resilientes y juicio ético humano."
+          },
+          {
+            year: "2024-2026+",
+            title: "Edge Computing y Computación Verde Sostenible",
+            sourceTag: "Complemento ACM / Sostenibilidad",
+            badgeType: "Cómputo Sostenible",
+            badgeColor: "#ec4899",
+            position: "top",
+            icon: "🌱",
+            event: "Inferencia inteligente en el extremo de la red (Edge) y reducción drástica de la huella hídrica y de carbono en macrocentros de datos de IA.",
+            relevance: "Impone la responsabilidad ecológica: optimizar algoritmos bajo criterios de eficiencia energética estricta y arquitectura circular.",
+            analysis: "La viabilidad del cómputo en el siglo XXI depende de soluciones de máximo impacto con huella ambiental neutra."
+          },
+          {
+            year: "Presente & Visión",
+            title: "El Ingeniero Holístico: Arquitecto Sistémico Sociotécnico",
+            sourceTag: "Síntesis Epistemológica / TGS",
+            badgeType: "Perfil Holístico ISC",
+            badgeColor: "#a855f7",
+            position: "bottom",
+            icon: "✨",
+            event: "Reafirmación de la TGS en la era hiperconectada: articulación de Personas, Datos, Procesos y Tecnologías para resolver problemas humanos.",
+            relevance: "La identidad perdurable del ISC: un líder ético e interdisciplinario con pensamiento crítico, inmune a la obsolescencia técnica efímera.",
+            analysis: "La tecnología solo tiene sentido cuando se orienta a elevar el bienestar de la sociedad con integridad y rigor."
+          }
+        ]
+      }
+    ];
+
+    // =========================================================================
+    // 4. REFLEXIONES PERSONALES DEL EQUIPO (Yahel, Abril, Alejandro, Tamar)
+    // =========================================================================
+    const teamReflections = [
+      {
+        name: "Yahel",
+      
+        role: "VISIÓN SISTÉMICA, ARQUITECTURA & AGENTES IA",
+        avatar: "👨‍💻",
+        accent: "#fbbf24",
+        bgBadge: "bg-amber-950/60 text-amber-300 border-amber-500/60",
+        quote: "A lo largo de este recorrido histórico, he comprendido que la Ingeniería en Sistemas Computacionales no consiste únicamente en dominar una herramienta, un lenguaje o una moda tecnológica pasajera, sino en poseer la capacidad de estructurar y modelar la complejidad del mundo real. Desde los relés mecánicos de Zuse y las tarjetas perforadas hasta los sistemas agénticos e inteligencia artificial con los que interactuamos hoy en día, el verdadero valor del ingeniero radica en su visión holística: ser el puente estratégico que articula el hardware físico, la lógica del software y el bienestar de las personas. En mi camino profesional, asumo el compromiso de crear tecnología no solo eficiente y escalable, sino profundamente humana, ética y con propósito social, capaz de innovar y resolver los grandes desafíos de México y el mundo."
+      },
+      {
+        name: "Abril",
+        role: "TRANSFORMACIÓN CORPORATIVA & NUBE",
+        avatar: "👩‍💻",
+        accent: "#ec4899",
+        bgBadge: "bg-pink-950/60 text-pink-300 border-pink-700/60",
+        quote: "La evolución tecnológica ha transformado al ingeniero en sistemas de un especialista tradicional en soporte a un socio estratégico clave que impulsa la transformación digital y la innovación corporativa. Actualmente su rol exige diseñar arquitecturas escalables y alinear la tecnología directamente con los objetivos de negocio. Entre las competencias indispensables destacan el dominio de entornos en la nube, la integración de ciberseguridad desde el diseño y la capacidad de implementar soluciones con inteligencia artificial. Además, la comunicación asertiva y el aprendizaje continuo son esenciales para liderar proyectos en entornos dinámicos e inciertos."
+      },
+      {
+        name: "Alejandro",
+        role: "IMPACTO SOCIAL & HISTORIA EN MÉXICO",
+        avatar: "👨‍🎓",
+        accent: "#38bdf8",
+        bgBadge: "bg-sky-950/60 text-sky-300 border-sky-700/60",
+        quote: "La evolución tecnológica ha transformado al ingeniero en sistemas de un técnico de soporte de ayuda a ser una pieza clave e insustituible en la sociedad moderna. Este cambio tuvo un gran impacto y un cálido recibimiento al llegar a México a través de las primeras carreras universitarias. Gracias a esta consolidación histórica, actualmente podemos formarnos y estudiar cualquier disciplina técnica que permite a la tecnología seguir innovando permanentemente y aportar valor real a nuestra comunidad."
+      },
+      {
+        name: "Tamar",
+        role: "EPISTEMOLOGÍA & PROYECCIÓN PROFESIONAL",
+        avatar: "👩‍🔬",
+        accent: "#a855f7",
+        bgBadge: "bg-purple-950/60 text-purple-300 border-purple-700/60",
+        quote: "En lo personal, considero que conocer la evolución histórica de la Ingeniería en Sistemas Computacionales es fundamental porque nos permite comprender a fondo cómo ha avanzado la tecnología a lo largo del tiempo. Aprendí que cada hito histórico ha contribuido directamente al desarrollo de las herramientas y plataformas que utilizamos actualmente. Además, este recorrido me ayuda a valorar la trascendencia de mi carrera y a comprender con claridad cómo las innovaciones tecnológicas seguirán marcando y transformando nuestro futuro profesional."
+      }
+    ];
+
+    // ESTADO DE LA APLICACIÓN
+    let currentViewMode = "panoramico";
+    let currentStageIndex = 0;
+    let currentCustomScreen = null;
+
+    // INICIALIZACIÓN
+    window.addEventListener("DOMContentLoaded", () => {
+      initThreeJS();
+      renderCurrentView();
+    });
+
+    // CAMBIAR MODO DE VISTA
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      currentCustomScreen = null;
+      playTone(440, 'sine', 0.08);
+
+      const btnPano = document.getElementById("viewBtnPanoramico");
+      const btnEsce = document.getElementById("viewBtnEscenico");
+
+      if (mode === "panoramico") {
+        btnPano.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 bg-gradient-to-r from-amber-600/40 via-emerald-600/40 to-cyan-600/40 text-white border border-white/20 shadow-md";
+        btnEsce.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2";
+      } else {
+        btnEsce.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 bg-gradient-to-r from-cyan-600/40 to-purple-600/40 text-white border border-white/20 shadow-md";
+        btnPano.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-2";
+      }
+
+      renderCurrentView();
+    }
+
+    function renderCurrentView() {
+      if (currentCustomScreen) {
+        renderCustomScreen(currentCustomScreen);
+        return;
+      }
+      if (currentViewMode === "panoramico") {
+        renderPanoramicoView();
+      } else {
+        renderEscenicoView(currentStageIndex);
+      }
+    }
+
+    // =========================================================================
+    // 5. VISTA PANORÁMICA CONTINUA CON EJE CENTRAL Y TARJETAS 3D INTERACTIVAS
+    // =========================================================================
+    function renderPanoramicoView() {
+      const container = document.getElementById("mainContainer");
+
+      document.getElementById("ambientGlowTop").style.backgroundColor = "#c8864818";
+      document.getElementById("ambientGlowBottom").style.backgroundColor = "#00f5d415";
+
+      let erasHtml = timelineData.map((era, eraIdx) => {
+        const topCards = era.cards.filter(c => c.position === "top");
+        const bottomCards = era.cards.filter(c => c.position === "bottom");
+
+        return `
+          <div id="era-section-${eraIdx}" class="flex-shrink-0 w-[1150px] lg:w-[1400px] relative px-8 py-8 flex flex-col justify-between ${era.bgClass} ${era.gridClass} select-none border-r border-white/10">
+            
+            <!-- Encabezado de la Era -->
+            <div class="relative z-10 mb-4 pb-3 border-b border-white/10 flex items-center justify-between">
+              <div>
+                <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-mono font-bold tracking-widest uppercase mb-1 shadow-sm" style="background-color: ${era.accent}20; color: ${era.accent}; border: 1px solid ${era.accent}50;">
+                  ${era.headerBadge}
+                </span>
+                <h2 class="text-2xl font-display font-extrabold text-white flex items-center gap-3">
+                  <span>${era.eraRange}:</span>
+                  <span style="color: ${era.accent}">${era.title}</span>
+                </h2>
+                <p class="text-xs text-slate-300 max-w-2xl mt-0.5">${era.subtitle}</p>
+              </div>
+
+              <div class="text-right">
+                <span class="text-3xl font-display font-black opacity-30 tracking-widest" style="color: ${era.accent}">
+                  0${eraIdx + 1}
+                </span>
+              </div>
+            </div>
+
+            <!-- ZONA DE TARJETAS SUPERIORES (3D WRAPPER) -->
+            <div class="relative z-10 grid grid-cols-3 gap-5 mb-8 items-end min-h-[230px]">
+              ${topCards.map((c, cIdx) => renderCardHtml(era, c, eraIdx, cIdx, "top")).join("")}
+            </div>
+
+            <!-- EJE CENTRAL CONTINUO ININTERRUMPIDO -->
+            <div class="relative w-full my-6 flex items-center justify-between px-6 z-20">
+              <!-- Tubo con flujo de energía -->
+              <div class="absolute inset-x-0 h-4 top-1/2 -translate-y-1/2 bg-black/75 rounded-full border border-white/15 overflow-hidden shadow-inner">
+                <div class="h-full w-full bus-energy-stream" style="background: linear-gradient(90deg, ${era.lineColor}aa, ${era.lineColor}, ${era.lineColor}aa, #ffffff, ${era.lineColor}aa);"></div>
+              </div>
+
+              <!-- Nodos circulares en la línea central -->
+              ${era.cards.map((c, cardIdx) => `
+                <div onclick="openModal(${eraIdx}, ${cardIdx})" onmouseenter="highlightNode(${eraIdx}, ${cardIdx})" class="relative z-30 group cursor-pointer flex flex-col items-center">
+                  
+                  <!-- Conector vertical con pulso de luz hacia la tarjeta -->
+                  <div class="absolute w-0.5 ${c.position === 'top' ? 'bottom-6 h-14' : 'top-6 h-14'} transition-all duration-300 group-hover:w-1" style="background: linear-gradient(${c.position === 'top' ? 'to top' : 'to bottom'}, ${era.accent}, transparent);"></div>
+
+                  <!-- Nodo circular luminoso -->
+                  <div class="w-11 h-11 rounded-full flex items-center justify-center font-mono font-bold text-xs text-slate-950 transition-all duration-300 group-hover:scale-125 shadow-xl relative border-2 border-white/80" style="background-color: ${c.badgeColor || era.accent}; box-shadow: 0 0 18px ${c.badgeColor || era.accent}90;">
+                    <span class="relative z-10 text-sm">${c.icon}</span>
+                    <div class="absolute inset-0 rounded-full animate-ping opacity-25" style="background-color: ${c.badgeColor || era.accent}"></div>
+                  </div>
+
+                  <!-- Etiqueta del año -->
+                  <span class="mt-1 px-2 py-0.5 rounded text-[11px] font-mono font-black tracking-tight bg-slate-950/90 border border-white/20 text-white shadow-md group-hover:border-white transition">
+                    ${c.year}
+                  </span>
+                </div>
+              `).join("")}
+            </div>
+
+            <!-- ZONA DE TARJETAS INFERIORES (3D WRAPPER) -->
+            <div class="relative z-10 grid grid-cols-3 gap-5 mt-8 items-start min-h-[230px]">
+              ${bottomCards.map((c, cIdx) => renderCardHtml(era, c, eraIdx, cIdx, "bottom")).join("")}
+            </div>
+
+          </div>
+        `;
+      }).join("");
+
+      container.innerHTML = `
+        <div class="relative w-full overflow-hidden flex flex-col">
+          
+          <!-- Mini-mapa de Eras -->
+          <div class="bg-slate-900/90 border-b border-slate-800 px-6 py-2 flex items-center justify-between text-xs sticky top-[65px] z-20 backdrop-blur-md">
+            <div class="flex items-center gap-2 text-slate-400 font-mono">
+              <span class="text-cyan-400">⚡ Autopista Histórica:</span>
+              <span class="text-slate-200">Navega libremente con arrastre, rueda del ratón o salta a una era:</span>
+            </div>
+
+            <div class="flex items-center gap-2 font-mono">
+              <button onclick="scrollToEra(0)" class="px-2.5 py-1 rounded bg-amber-950/60 text-amber-300 border border-amber-800 hover:bg-amber-900/60 transition">
+                1940s-50s
+              </button>
+              <button onclick="scrollToEra(1)" class="px-2.5 py-1 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800 hover:bg-emerald-900/60 transition">
+                1960s-70s
+              </button>
+              <button onclick="scrollToEra(2)" class="px-2.5 py-1 rounded bg-amber-950/60 text-yellow-300 border border-yellow-800 hover:bg-yellow-900/60 transition">
+                1980s-90s
+              </button>
+              <button onclick="scrollToEra(3)" class="px-2.5 py-1 rounded bg-sky-950/60 text-sky-300 border border-sky-800 hover:bg-sky-900/60 transition">
+                2000s-10s
+              </button>
+              <button onclick="scrollToEra(4)" class="px-2.5 py-1 rounded bg-purple-950/60 text-cyan-300 border border-purple-800 hover:bg-purple-900/60 transition">
+                2020s & Beyond (Yahel)
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTENEDOR HORIZONTAL CON DRAG SUAVE E INERCIA -->
+          <div id="panoramicScroll" class="flex overflow-x-auto overflow-y-hidden cursor-grab active:cursor-grabbing relative" style="height: calc(100vh - 120px); min-height: 720px;">
+            ${erasHtml}
+          </div>
+
+          <!-- PIE DE NAVEGACIÓN -->
+          <footer class="bg-slate-950/90 border-t border-slate-800 px-6 py-2 flex items-center justify-between text-xs text-slate-400">
+            <div class="flex items-center gap-4">
+              <span>⌨️ Usa las teclas <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">←</kbd> <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">→</kbd> para desplazarte</span>
+              <span class="text-cyan-300">💡 Las tarjetas tienen inclinación 3D en hover y modales fluidos</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="font-mono text-slate-200 font-bold">Autopista Central Unificada (1941 → 2026+)</span>
+            </div>
+          </footer>
+
+        </div>
+      `;
+
+      // Inicializar efectos 3D de inclinación (Tilt) e Inercia de Arrastre
+      setup3DCardTilt();
+      setupSmoothDrag();
+    }
+
+    // =========================================================================
+    // 6. RENDERIZADOR DE TARJETAS CON EFECTOS 3D E INCLINACIÓN TÁCTIL
+    // =========================================================================
+    function renderCardHtml(era, card, eraIdx, cardIdx, pos) {
+      const isYahel = card.badgeType.includes("Yahel");
+      const cardBorder = isYahel ? "border-amber-400/80 shadow-amber-500/20 shadow-lg" : `border-[${era.accent}40]`;
+      
+      return `
+        <div class="card-3d-wrapper">
+          <div onclick="openModal(${eraIdx}, ${cardIdx})" 
+               class="timeline-card-3d glass-panel rounded-2xl p-4 border flex flex-col justify-between cursor-pointer group" 
+               style="background-color: ${isYahel ? '#2b1e06ee' : era.accent + '15'}; border-color: ${isYahel ? '#fbbf24' : era.accent + '45'};">
+            
+            <!-- Reflejo dinámico que sigue el cursor -->
+            <div class="card-glare"></div>
+
+            <!-- Capa 1: Badges superiores -->
+            <div class="layer-pop-1 flex items-center justify-between gap-2 mb-2">
+              <span class="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold tracking-wider uppercase bg-slate-950/85 border border-white/20" style="color: ${card.badgeColor || era.accent};">
+                ${card.badgeType}
+              </span>
+              <span class="text-xs font-mono font-black" style="color: ${card.badgeColor || era.accent}">
+                ${card.year}
+              </span>
+            </div>
+
+            <!-- Capa 2: Título del Hito -->
+            <div class="layer-pop-2">
+              <h3 class="text-sm font-bold text-white mb-2 leading-snug group-hover:text-amber-200 transition-colors flex items-center gap-1.5">
+                <span>${card.icon}</span>
+                <span>${card.title}</span>
+              </h3>
+
+              <div class="text-[11px] text-slate-300 line-clamp-3 mb-3 leading-relaxed bg-black/45 p-2.5 rounded-lg border border-white/5">
+                ${card.event}
+              </div>
+            </div>
+
+            <!-- Capa 3: Relevancia y Botón de Exploración -->
+            <div class="layer-pop-3">
+              <div class="text-[10px] p-2 rounded-lg border border-dashed text-slate-200 mb-2 leading-tight" style="border-color: ${era.accent}60; background-color: ${era.accent}0a;">
+                <strong style="color: ${era.accent}">Relevancia ISC:</strong>
+                <span class="line-clamp-2">${card.relevance}</span>
+              </div>
+
+              <!-- Indicador destacado de clic -->
+              <div class="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-semibold text-slate-300 group-hover:text-white transition">
+                <span class="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                  <span class="text-amber-400">⚡</span> Clic para explorar en 3D
+                </span>
+                <span class="group-hover:translate-x-1 transition-transform">➔</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+    }
+
+    // INCLINACIÓN 3D TÁCTIL EN HOVER (CARD TILT)
+    function setup3DCardTilt() {
+      const cards = document.querySelectorAll(".timeline-card-3d");
+      cards.forEach(card => {
+        const glare = card.querySelector(".card-glare");
+
+        card.addEventListener("mousemove", (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          const rotateX = ((y - centerY) / centerY) * -12;
+          const rotateY = ((x - centerX) / centerX) * 12;
+
+          card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.04, 1.04, 1.04)`;
+
+          if (glare) {
+            glare.style.background = `radial-gradient(circle at ${x}px ${y}px, rgba(255,255,255,0.22), transparent 60%)`;
+          }
+        });
+
+        card.addEventListener("mouseleave", () => {
+          card.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)";
+        });
+      });
+    }
+
+    // ARRASTRE HORIZONTAL SUAVE CON INERCIA
+    function setupSmoothDrag() {
+      const scrollEl = document.getElementById("panoramicScroll");
+      if (!scrollEl) return;
+
+      let isDown = false;
+      let startX, scrollLeft, velX = 0, momentumID;
+
+      scrollEl.addEventListener("mousedown", (e) => {
+        isDown = true;
+        cancelAnimationFrame(momentumID);
+        startX = e.pageX - scrollEl.offsetLeft;
+        scrollLeft = scrollEl.scrollLeft;
+      });
+
+      scrollEl.addEventListener("mouseleave", () => { isDown = false; });
+      scrollEl.addEventListener("mouseup", () => {
+        isDown = false;
+        // Inercia suave
+        const momentumLoop = () => {
+          if (Math.abs(velX) > 0.5) {
+            scrollEl.scrollLeft += velX;
+            velX *= 0.92;
+            momentumID = requestAnimationFrame(momentumLoop);
+          }
+        };
+        momentumLoop();
+      });
+
+      scrollEl.addEventListener("mousemove", (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - scrollEl.offsetLeft;
+        const walk = (x - startX) * 1.5;
+        velX = scrollLeft - (scrollLeft - (walk - (scrollEl.scrollLeft - scrollLeft)));
+        velX = -(walk * 0.15);
+        scrollEl.scrollLeft = scrollLeft - walk;
+      });
+
+      // Rueda del ratón horizontal suave
+      scrollEl.addEventListener("wheel", (e) => {
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          gsap.to(scrollEl, {
+            scrollLeft: scrollEl.scrollLeft + e.deltaY * 2.2,
+            duration: 0.45,
+            ease: "power2.out"
+          });
+        }
+      });
+    }
+
+    function highlightNode(eraIdx, cardIdx) {
+      playTone(460 + (cardIdx * 45), 'sine', 0.05);
+    }
+
+    function scrollToEra(eraIdx) {
+      playTone(520, 'sine', 0.08);
+      const target = document.getElementById(`era-section-${eraIdx}`);
+      const scrollEl = document.getElementById("panoramicScroll");
+      if (target && scrollEl) {
+        gsap.to(scrollEl, {
+          scrollLeft: target.offsetLeft,
+          duration: 1.1,
+          ease: "power3.out"
+        });
+      }
+    }
+
+    // =========================================================================
+    // 7. MODO ESCÉNICO (ÉPOCA POR ÉPOCA)
+    // =========================================================================
+    function renderEscenicoView(stageIdx) {
+      currentStageIndex = stageIdx;
+      const container = document.getElementById("mainContainer");
+      const era = timelineData[stageIdx];
+
+      document.getElementById("ambientGlowTop").style.backgroundColor = era.accent + "20";
+      document.getElementById("ambientGlowBottom").style.backgroundColor = era.accent + "12";
+
+      const topCards = era.cards.filter(c => c.position === "top");
+      const bottomCards = era.cards.filter(c => c.position === "bottom");
+
+      container.innerHTML = `
+        <div class="min-h-[calc(100vh-140px)] flex flex-col justify-between p-6 lg:p-10 ${era.bgClass} ${era.gridClass} relative">
+          
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/10">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider shadow-sm" style="background-color: ${era.accent}20; color: ${era.accent}; border: 1px solid ${era.accent}60;">
+                  ${era.headerBadge}
+                </span>
+                <span class="text-xs text-slate-400 font-mono">Etapa ${stageIdx + 1} de 5</span>
+              </div>
+              <h2 class="text-2xl md:text-3xl font-display font-extrabold text-white tracking-tight">
+                ${era.eraRange}: <span style="color: ${era.accent}">${era.title}</span>
+              </h2>
+              <p class="text-xs md:text-sm text-slate-300 mt-1 max-w-4xl">${era.subtitle}</p>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button onclick="prevStage()" ${stageIdx === 0 ? 'disabled class="opacity-40 cursor-not-allowed"' : 'class="hover:bg-slate-800"'} class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-bold text-white transition flex items-center gap-1.5 shadow">
+                ◀ Anterior
+              </button>
+              <button onclick="nextStage()" ${stageIdx === timelineData.length - 1 ? 'disabled class="opacity-40 cursor-not-allowed"' : 'class="hover:opacity-90"'} class="px-5 py-2 rounded-xl text-xs font-bold text-slate-950 transition flex items-center gap-1.5 shadow-lg" style="background-color: ${era.accent}">
+                Siguiente ▶
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            ${topCards.map((c, cIdx) => renderCardHtml(era, c, stageIdx, cIdx, "top")).join("")}
+          </div>
+
+          <!-- LÍNEA CENTRAL ININTERRUMPIDA DE PANTALLA -->
+          <div class="relative w-full my-8 flex items-center justify-between px-8 z-20">
+            <div class="absolute inset-x-0 h-4 top-1/2 -translate-y-1/2 bg-black/75 rounded-full border border-white/20 overflow-hidden shadow-inner">
+              <div class="h-full w-full bus-energy-stream" style="background: linear-gradient(90deg, ${era.lineColor}aa, ${era.lineColor}, ${era.lineColor}aa, #ffffff, ${era.lineColor}aa);"></div>
+            </div>
+
+            ${era.cards.map((c, cardIdx) => `
+              <div onclick="openModal(${stageIdx}, ${cardIdx})" onmouseenter="highlightNode(${stageIdx}, ${cardIdx})" class="relative z-30 group cursor-pointer flex flex-col items-center">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center font-mono font-bold text-sm text-slate-950 transition-all duration-300 group-hover:scale-125 shadow-xl border-2 border-white/80" style="background-color: ${c.badgeColor || era.accent}; box-shadow: 0 0 20px ${c.badgeColor || era.accent}90;">
+                  <span>${c.icon}</span>
+                </div>
+                <span class="mt-1.5 px-2.5 py-0.5 rounded text-xs font-mono font-extrabold bg-slate-950 border border-white/20 text-white shadow">
+                  ${c.year}
+                </span>
+              </div>
+            `).join("")}
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            ${bottomCards.map((c, cIdx) => renderCardHtml(era, c, stageIdx, cIdx, "bottom")).join("")}
+          </div>
+
+        </div>
+      `;
+
+      setup3DCardTilt();
+
+      // Animación suave GSAP de entrada de tarjetas
+      gsap.from(".card-3d-wrapper", {
+        opacity: 0,
+        y: 25,
+        scale: 0.95,
+        stagger: 0.08,
+        duration: 0.55,
+        ease: "power2.out"
+      });
+    }
+
+    function nextStage() {
+      if (currentStageIndex < timelineData.length - 1) {
+        currentStageIndex++;
+        playTone(520, 'sine', 0.08);
+        renderEscenicoView(currentStageIndex);
+      }
+    }
+
+    function prevStage() {
+      if (currentStageIndex > 0) {
+        currentStageIndex--;
+        playTone(440, 'sine', 0.08);
+        renderEscenicoView(currentStageIndex);
+      }
+    }
+
+    // =========================================================================
+    // 8. PANTALLAS ESPECIALES (REFLEXIONES, LENTE TGS, ANÁLISIS, APA)
+    // =========================================================================
+    function switchScreen(screenKey) {
+      currentCustomScreen = screenKey;
+      playTone(587.33, 'triangle', 0.1);
+      renderCustomScreen(screenKey);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderCustomScreen(screenKey) {
+      const container = document.getElementById("mainContainer");
+
+      if (screenKey === "reflexion") {
+        document.getElementById("ambientGlowTop").style.backgroundColor = "#fbbf2420";
+        document.getElementById("ambientGlowBottom").style.backgroundColor = "#ec489915";
+
+        let cardsHtml = teamReflections.map(r => `
+          <div class="glass-panel p-6 rounded-2xl border border-white/10 flex flex-col justify-between relative group hover:border-amber-400/50 transition-all duration-300 bg-slate-950/70 shadow-2xl">
+            <div>
+              <div class="flex items-center gap-3 mb-4">
+                <span class="text-3xl p-2 rounded-xl bg-slate-900 border border-white/10 shadow">${r.avatar}</span>
+                <div>
+                  <h3 class="text-xl font-bold font-display text-white flex items-center gap-2">
+                    ${r.name}
+                    ${r.name === 'Yahel' ? '<span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">Líder & Arquitectura</span>' : ''}
+                  </h3>
+                  <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase ${r.bgBadge}">
+                    ${r.role}
+                  </span>
+                </div>
+              </div>
+
+              <div class="text-xs md:text-sm text-slate-200 leading-relaxed italic bg-slate-900/60 p-4 rounded-xl border border-white/5 relative">
+                <span class="text-2xl text-amber-400 absolute top-2 left-2 opacity-30 font-serif">“</span>
+                <p class="relative z-10 pl-3 leading-relaxed">${r.quote}</p>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-3 border-t border-slate-800 text-[11px] font-mono text-slate-400 flex items-center justify-between">
+              <span>Fundamentos de Investigación • ISC</span>
+              <span class="text-amber-400 font-bold">✓ Reflexión Evaluada</span>
+            </div>
+          </div>
+        `).join("");
+
+        container.innerHTML = `
+          <div class="p-6 lg:p-10 max-w-7xl mx-auto">
+            <div class="mb-8">
+              <span class="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-950/40 border border-amber-500/60">
+                Sección Oficial de Cierre • Equipo Completo
+              </span>
+              <h2 class="text-2xl md:text-3xl font-display font-extrabold text-white mt-2">
+                Reflexiones Personales del Equipo de Investigación
+              </h2>
+              <p class="text-sm text-slate-400 mt-1 max-w-4xl">
+                Análisis vivencial y crítico de Yahel, Abril, Alejandro y Tamar sobre la transformación histórica de la carrera, las competencias contemporáneas y el futuro de la ingeniería.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+              ${cardsHtml}
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl border border-cyan-500/30 bg-slate-950/70">
+              <h3 class="text-lg font-bold font-display text-white mb-4 flex items-center gap-2">
+                <span>🌟</span> Síntesis Consolidada de Competencias del Ingeniero Holístico
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <strong class="text-amber-400 block mb-1">1. Visión Sistémica & Agentes IA</strong>
+                  <p class="text-slate-300 leading-relaxed">Orquestación de sistemas cognitivos autónomos y diseño de arquitecturas con propósito humano.</p>
+                </div>
+                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <strong class="text-pink-400 block mb-1">2. Nube Elástica & Resiliencia</strong>
+                  <p class="text-slate-300 leading-relaxed">Microservicios distribuidos, contenedores y alta disponibilidad elástica sin infraestructura propia.</p>
+                </div>
+                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <strong class="text-sky-400 block mb-1">3. Ciberseguridad & IoT</strong>
+                  <p class="text-slate-300 leading-relaxed">Seguridad por diseño (Security by Design) para resguardar infraestructuras críticas y privacidad.</p>
+                </div>
+                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <strong class="text-purple-400 block mb-1">4. Ética & Aprendizaje Continuo</strong>
+                  <p class="text-slate-300 leading-relaxed">Liderazgo interdisciplinario y vocación formativa activa ante la obsolescencia técnica constante.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+      } else if (screenKey === "lente") {
+        document.getElementById("ambientGlowTop").style.backgroundColor = "#06B6D420";
+        document.getElementById("ambientGlowBottom").style.backgroundColor = "#10B98115";
+
+        container.innerHTML = `
+          <div class="p-6 lg:p-10 max-w-7xl mx-auto">
+            <div class="mb-8">
+              <span class="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/40 border border-cyan-800">
+                Fundamento Epistemológico Madre
+              </span>
+              <h2 class="text-2xl md:text-3xl font-display font-extrabold text-white mt-2">
+                La Lente Sistémica: Teoría General de Sistemas (TGS)
+              </h2>
+              <p class="text-sm text-slate-400 mt-1 max-w-4xl">
+                La ISC es la articulación sinérgica de cuatro dimensiones interdependientes:
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="glass-panel p-6 rounded-2xl border border-pink-500/30 bg-slate-950/70">
+                <div class="flex items-center gap-3 mb-3">
+                  <span class="text-3xl">👥</span>
+                  <div>
+                    <h3 class="text-lg font-bold text-pink-400">1. Dimensión Personas y Actores</h3>
+                    <span class="text-xs text-slate-400">Dimensión Sociotécnica y Humana</span>
+                  </div>
+                </div>
+                <ul class="text-xs space-y-2 text-slate-300 leading-relaxed">
+                  <li>• Usuarios finales, operadores, líderes directivos y comunidades impactadas por el software.</li>
+                  <li>• Ergonomía cognitiva, experiencia de usuario (UX) y gestión del cambio cultural.</li>
+                  <li>• Ética algorítmica, derechos de privacidad ciudadana y repercusiones sociales.</li>
+                </ul>
+              </div>
+
+              <div class="glass-panel p-6 rounded-2xl border border-cyan-500/30 bg-slate-950/70">
+                <div class="flex items-center gap-3 mb-3">
+                  <span class="text-3xl">📊</span>
+                  <div>
+                    <h3 class="text-lg font-bold text-cyan-400">2. Dimensión Datos e Información</h3>
+                    <span class="text-xs text-slate-400">Teoría de la Información y Gobernanza</span>
+                  </div>
+                </div>
+                <ul class="text-xs space-y-2 text-slate-300 leading-relaxed">
+                  <li>• Bases de datos relacionales, analíticas NoSQL, grafos y lagos de datos masivos (Big Data).</li>
+                  <li>• Bucles de retroalimentación (feedback): los datos revelan el estado real del sistema y guían ajustes.</li>
+                  <li>• Veracidad, linaje, consistencia eventual y seguridad criptográfica.</li>
+                </ul>
+              </div>
+
+              <div class="glass-panel p-6 rounded-2xl border border-emerald-500/30 bg-slate-950/70">
+                <div class="flex items-center gap-3 mb-3">
+                  <span class="text-3xl">⚙️</span>
+                  <div>
+                    <h3 class="text-lg font-bold text-emerald-400">3. Dimensión Procesos y Métodos</h3>
+                    <span class="text-xs text-slate-400">Lógica de Negocio y Control Cibernético</span>
+                  </div>
+                </div>
+                <ul class="text-xs space-y-2 text-slate-300 leading-relaxed">
+                  <li>• Flujos operativos organizacionales, protocolos de trabajo y reglas de negocio automatizadas.</li>
+                  <li>• Cibernética de Norbert Wiener: mecanismos de autorregulación y estabilidad sistémica.</li>
+                  <li>• Ciclos de vida ágiles (DevOps, CI/CD, verificación formal de código).</li>
+                </ul>
+              </div>
+
+              <div class="glass-panel p-6 rounded-2xl border border-violet-500/30 bg-slate-950/70">
+                <div class="flex items-center gap-3 mb-3">
+                  <span class="text-3xl">💻</span>
+                  <div>
+                    <h3 class="text-lg font-bold text-violet-400">4. Dimensión Tecnología e Infraestructura</h3>
+                    <span class="text-xs text-slate-400">Hardware, Software, Redes y Algoritmos</span>
+                  </div>
+                </div>
+                <ul class="text-xs space-y-2 text-slate-300 leading-relaxed">
+                  <li>• Capa física: procesadores, silicio acelerador de IA, sensores IoT y fibra óptica.</li>
+                  <li>• Capa lógica: sistemas operativos, microservicios, APIs distribuidas y agentes autónomos.</li>
+                  <li>• Capa algorítmica: estructuras de datos avanzadas, modelos Transformers y cifrado cuántico.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        `;
+
+      } else if (screenKey === "analisis") {
+        document.getElementById("ambientGlowTop").style.backgroundColor = "#F59E0B20";
+        document.getElementById("ambientGlowBottom").style.backgroundColor = "#38bdf815";
+
+        container.innerHTML = `
+          <div class="p-6 lg:p-10 max-w-7xl mx-auto">
+            <div class="mb-8">
+              <span class="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-950/40 border border-amber-800">
+                Análisis Crítico (Extensión: 1 Cuartilla)
+              </span>
+              <h2 class="text-2xl md:text-3xl font-display font-extrabold text-white mt-2">
+                Tres Acontecimientos Fundamentales en la Evolución de la ISC
+              </h2>
+              <p class="text-sm text-slate-400 mt-1 max-w-4xl">
+                Justificación de los 3 hitos que moldearon la disciplina y su impacto directo en el ejercicio profesional contemporáneo.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div class="glass-panel p-6 rounded-2xl border border-amber-500/30 bg-slate-950/70 flex flex-col justify-between">
+                <div>
+                  <span class="text-xs font-mono font-bold text-amber-400">HITO FUNDAMENTAL 01</span>
+                  <h3 class="text-lg font-bold text-white mt-1 mb-3">El Principio Sistémico Integrador (Bell Labs 1943 / TGS 1954)</h3>
+                  <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
+                    <p><strong class="text-amber-300">¿Por qué es fundamental?</strong> Representa el nacimiento de la premisa que define al ingeniero en sistemas: los retos tecnológicos complejos no pueden resolverse mediante la suma aislada de sus partes. La interconexión de redes masivas obligó a crear una disciplina que garantizara la armonía total entre hardware, software y personas.</p>
+                    <p><strong class="text-slate-200">Impacto en la práctica actual:</strong> Hoy, una plataforma digital empresarial integra servicios en la nube, microservicios, bases de datos y usuarios. El ingeniero no es un codificador aislado, sino el orquestador que asegura la interoperabilidad y resiliencia del ecosistema completo.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="glass-panel p-6 rounded-2xl border border-emerald-500/30 bg-slate-950/70 flex flex-col justify-between">
+                <div>
+                  <span class="text-xs font-mono font-bold text-emerald-400">HITO FUNDAMENTAL 02</span>
+                  <h3 class="text-lg font-bold text-white mt-1 mb-3">La Institucionalización en México (ITESM 1967 / TecNM 1981)</h3>
+                  <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
+                    <p><strong class="text-emerald-300">¿Por qué es fundamental?</strong> Marcó la transición decisiva del empirismo técnico hacia una profesión universitaria formal. Reconoció que programar y estructurar sistemas informáticos exigía una formación rigurosa e independiente de la física o las matemáticas tradicionales.</p>
+                    <p><strong class="text-slate-200">Impacto en la práctica actual:</strong> Permitió establecer planes curriculares rigurosos que forjaron la masa crítica de ingenieros responsables de automatizar la banca, la industria y el gobierno en todo México, impulsando la soberanía tecnológica nacional.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="glass-panel p-6 rounded-2xl border border-cyan-500/30 bg-slate-950/70 flex flex-col justify-between">
+                <div>
+                  <span class="text-xs font-mono font-bold text-cyan-400">HITO FUNDAMENTAL 03</span>
+                  <h3 class="text-lg font-bold text-white mt-1 mb-3">Convergencia de Internet, la Web, Nube e IA Responsable</h3>
+                  <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
+                    <p><strong class="text-cyan-300">¿Por qué es fundamental?</strong> Ha redefinido el paradigma tecnológico mundial: los sistemas pasaron de ser ejecutables estáticos en computadoras aisladas a convertirse en ecosistemas cognitivos e hiperconectados en tiempo real.</p>
+                    <p><strong class="text-slate-200">Impacto en la práctica actual:</strong> El rol profesional mutó: de escribir sintaxis básica manualmente a diseñar arquitecturas elásticas, gobernar modelos de inteligencia artificial, proteger la privacidad ciudadana y velar por la sostenibilidad ambiental.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+      } else if (screenKey === "apa") {
+        document.getElementById("ambientGlowTop").style.backgroundColor = "#10B98120";
+        document.getElementById("ambientGlowBottom").style.backgroundColor = "#0284c715";
+
+        container.innerHTML = `
+          <div class="p-6 lg:p-10 max-w-7xl mx-auto">
+            <div class="mb-8">
+              <span class="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/40 border border-emerald-800">
+                Rigor Académico Oficial • Normas APA 7ma Edición
+              </span>
+              <h2 class="text-2xl md:text-3xl font-display font-extrabold text-white mt-2">
+                Referencias Bibliográficas Documentales
+              </h2>
+              <p class="text-sm text-slate-400 mt-1 max-w-4xl">
+                Fuentes científicas, institucionales y académicas consultadas y validadas con sus debidos identificadores DOI y URLs oficiales.
+              </p>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl border border-emerald-500/30 space-y-4 bg-slate-950/70">
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                <p class="text-sm text-slate-100 leading-relaxed">
+                  Romero Lázaro, I. J., & Padilla Hernández, J. E. (2018). Historia de la Ingeniería de Sistemas. En <em>Enfoques, teorías y perspectivas de la Ingeniería de Sistemas y sus programas académicos</em> (pp. 11-31). Editorial CECAR.
+                </p>
+                <a href="https://doi.org/10.21892/9789588557717.1" target="_blank" class="text-xs text-cyan-400 hover:underline font-mono mt-1 inline-block">https://doi.org/10.21892/9789588557717.1</a>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                <p class="text-sm text-slate-100 leading-relaxed">
+                  Rodríguez Oviedo, A. L., & Hernández Hernández, G. C. (2018). Tendencias del programa de Ingeniería de Sistemas. En <em>Enfoques, teorías y perspectivas de la Ingeniería de Sistemas y sus programas académicos</em> (pp. 65-122). Editorial CECAR.
+                </p>
+                <a href="https://doi.org/10.21892/9789588557717.3" target="_blank" class="text-xs text-cyan-400 hover:underline font-mono mt-1 inline-block">https://doi.org/10.21892/9789588557717.3</a>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                <p class="text-sm text-slate-100 leading-relaxed">
+                  Von Bertalanffy, L. (1968). <em>General System Theory: Foundations, Development, Applications</em>. George Braziller Publisher.
+                </p>
+                <span class="text-xs text-slate-400 font-mono mt-1 inline-block">ISBN: 978-0807604533</span>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                <p class="text-sm text-slate-100 leading-relaxed">
+                  Tecnológico Nacional de México [TecNM]. (1981). <em>Fundamentación curricular de la carrera de Ingeniería en Sistemas Computacionales</em>. Dirección de Docencia e Innovación Educativa.
+                </p>
+                <a href="https://www.tecnm.mx" target="_blank" class="text-xs text-cyan-400 hover:underline font-mono mt-1 inline-block">https://www.tecnm.mx</a>
+              </div>
+
+              <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                <p class="text-sm text-slate-100 leading-relaxed">
+                  Computer History Museum. (s. f.). <em>Timeline of Computer History: Hardware, Networking, and Software</em>. Mountain View, CA.
+                </p>
+                <a href="https://www.computerhistory.org/timeline/" target="_blank" class="text-xs text-cyan-400 hover:underline font-mono mt-1 inline-block">https://www.computerhistory.org/timeline/</a>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // =========================================================================
+    // 9. MODAL DE DETALLE CON ANIMACIÓN GSAP FLUIDA (SIN POPUPS REPENTINOS)
+    // =========================================================================
+    function openModal(eraIdx, cardIdx) {
+      playTone(660, 'sine', 0.08);
+      const era = timelineData[eraIdx];
+      const card = era.cards[cardIdx];
+
+      document.getElementById("modalYear").innerText = card.year;
+      document.getElementById("modalYear").style.color = card.badgeColor || era.accent;
+      document.getElementById("modalTitle").innerText = card.title;
+      document.getElementById("modalEvent").innerText = card.event;
+      document.getElementById("modalRelevance").innerText = card.relevance;
+      document.getElementById("modalAnalysis").innerText = card.analysis;
+
+      const badge = document.getElementById("modalBadge");
+      badge.innerText = `${card.badgeType} • ${card.sourceTag}`;
+      badge.style.backgroundColor = (card.badgeColor || era.accent) + "25";
+      badge.style.color = card.badgeColor || era.accent;
+      badge.style.borderColor = (card.badgeColor || era.accent) + "65";
+
+      const modalContainer = document.getElementById("detailModal");
+      const modalBox = document.getElementById("modalBox");
+
+      modalContainer.style.pointerEvents = "auto";
+
+      // Animación fluida de apertura con GSAP
+      gsap.killTweensOf([modalContainer, modalBox]);
+      gsap.to(modalContainer, { opacity: 1, duration: 0.32, ease: "power2.out" });
+      gsap.fromTo(modalBox, 
+        { scale: 0.86, y: 35, opacity: 0, rotateX: 8 },
+        { scale: 1, y: 0, opacity: 1, rotateX: 0, duration: 0.45, ease: "back.out(1.4)" }
+      );
+    }
+
+    function closeModal() {
+      playTone(330, 'sine', 0.06);
+      const modalContainer = document.getElementById("detailModal");
+      const modalBox = document.getElementById("modalBox");
+
+      // Animación fluida de cierre con GSAP (cero apariciones bruscas)
+      gsap.killTweensOf([modalContainer, modalBox]);
+      gsap.to(modalBox, { scale: 0.9, y: 20, opacity: 0, duration: 0.22, ease: "power2.in" });
+      gsap.to(modalContainer, { 
+        opacity: 0, 
+        duration: 0.24, 
+        ease: "power2.in", 
+        onComplete: () => {
+          modalContainer.style.pointerEvents = "none";
+        }
+      });
+    }
+
+    // Cerrar al hacer clic en el backdrop exterior
+    document.getElementById("detailModal").addEventListener("click", (e) => {
+      if (e.target.id === "detailModal") {
+        closeModal();
+      }
+    });
+
+    // =========================================================================
+    // 10. NAVEGACIÓN GLOBAL POR TECLADO
+    // =========================================================================
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeModal();
+      } else if (e.key === "ArrowRight") {
+        if (currentViewMode === "escenico" && !currentCustomScreen) {
+          nextStage();
+        } else if (currentViewMode === "panoramico" && !currentCustomScreen) {
+          const scrollEl = document.getElementById("panoramicScroll");
+          if (scrollEl) {
+            gsap.to(scrollEl, { scrollLeft: scrollEl.scrollLeft + 420, duration: 0.5, ease: "power2.out" });
+          }
+        }
+      } else if (e.key === "ArrowLeft") {
+        if (currentViewMode === "escenico" && !currentCustomScreen) {
+          prevStage();
+        } else if (currentViewMode === "panoramico" && !currentCustomScreen) {
+          const scrollEl = document.getElementById("panoramicScroll");
+          if (scrollEl) {
+            gsap.to(scrollEl, { scrollLeft: scrollEl.scrollLeft - 420, duration: 0.5, ease: "power2.out" });
+          }
+        }
+      } else if (["1", "2", "3", "4", "5"].includes(e.key)) {
+        if (currentViewMode === "escenico") {
+          currentCustomScreen = null;
+          renderEscenicoView(parseInt(e.key) - 1);
+        } else {
+          scrollToEra(parseInt(e.key) - 1);
+        }
+      } else if (e.key.toLowerCase() === "p") {
+        setViewMode("panoramico");
+      } else if (e.key.toLowerCase() === "e") {
+        setViewMode("escenico");
+      } else if (e.key.toLowerCase() === "r") {
+        switchScreen("reflexion");
+      } else if (e.key.toLowerCase() === "l") {
+        switchScreen("lente");
+      } else if (e.key.toLowerCase() === "a") {
+        switchScreen("analisis");
+      }
+    });
+  </script>
+</body>
+</html>

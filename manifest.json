@@ -1,0 +1,9 @@
+{
+  "name": "Historia de la ISC - Línea de Tiempo Interactiva",
+  "id": "historia-isc-timeline-pro",
+  "api": "1.0.0",
+  "main": "code.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": ["figma"]
+}
